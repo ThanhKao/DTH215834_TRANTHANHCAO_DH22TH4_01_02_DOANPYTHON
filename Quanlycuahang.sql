@@ -4,7 +4,7 @@ GO
 USE QLCHXM
 GO
 
--- 1. Bảng Nhân Viên (Giữ nguyên)
+
 CREATE TABLE NhanVien (
     MaNhanVien NVARCHAR(10) NOT NULL PRIMARY KEY,
     HoVaTen NVARCHAR(100) NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE NhanVien (
 );
 GO
 
--- 2. Bảng Xe Máy
+
 CREATE TABLE VatLieu (
     MaVatLieu VARCHAR(17) NOT NULL PRIMARY KEY, 
     LoaiVatLieu NVARCHAR(30),                      
@@ -24,7 +24,7 @@ CREATE TABLE VatLieu (
 );
 GO
 
--- 3. Bảng Khách Hàng
+
 CREATE TABLE KhachHang (
     MaKhachHang NVARCHAR(20) NOT NULL PRIMARY KEY, -- Đã sửa: NVARCHAR để nhập tay
     HoTen NVARCHAR(100) NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE KhachHang (
 );
 GO
 
--- 4. Bảng hoá đơn
+
 CREATE TABLE HoaDon (
     MaHoaDon NVARCHAR(20) NOT NULL PRIMARY KEY,
     MaNhanVien NVARCHAR(10), 
@@ -50,10 +50,10 @@ CREATE TABLE HoaDon (
 );
 GO
 
--- 5. Bảng Tài Khoản (Cập nhật VaiTro: Admin, QuanLy, NhanVien)
+
 CREATE TABLE TaiKhoan (
     TenDangNhap NVARCHAR(50) PRIMARY KEY,
-    MatKhau NVARCHAR(255) NOT NULL, -- Sẽ lưu mã hóa SHA-256
+    MatKhau NVARCHAR(255) NOT NULL, 
     MaNhanVien NVARCHAR(10) NOT NULL,
     -- Vai trò: 'Admin' (Toàn quyền), 'QuanLy' (Quản lý kho/nhân viên), 'NhanVien' (Chỉ bán hàng)
     VaiTro NVARCHAR(20) DEFAULT 'NhanVien' NOT NULL, 

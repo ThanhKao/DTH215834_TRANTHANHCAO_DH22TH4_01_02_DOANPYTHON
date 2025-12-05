@@ -1,84 +1,112 @@
-﻿CREATE DATABASE QUANLYNHANSU
-ON PRIMARY (NAME=QLNS_Data, FILENAME='E:\QuanLyNhanSu.mdf', SIZE=8192KB, MAXSIZE=15MB, FILEGROWTH=5MB) 
-LOG ON  ( NAME=QLNS_Log, FILENAME= 'E:\QuanLyNhanSu_log.ldf', SIZE=8192KB, MAXSIZE=15MB,  FILEGROWTH=5MB)
+﻿CREATE DATABASE QLCHXM
+GO
 
-USE QUANLYNHANSU
+USE QLCHXM
+GO
 
-CREATE TABLE NHANVIEN(
-    MANV VARCHAR(5) PRIMARY KEY,
-    HOTEN NVARCHAR(100) NOT NULL,
-    CCCD VARCHAR(12) UNIQUE NOT NULL,
-    DIENTHOAI VARCHAR(10) UNIQUE NOT NULL,
-    GIOITINH NVARCHAR(3) CHECK (GIOITINH IN (N'Nam',N'Nữ')),
-    EMAIL VARCHAR(100) CHECK (EMAIL LIKE '%@%' AND EMAIL LIKE '%.com' AND EMAIL NOT LIKE '% %') UNIQUE NOT NULL,
-    NGAYSINH DATE,
-    PHONGBAN NVARCHAR(25) CHECK (PHONGBAN IN (N'Giám đốc',N'Tài chính',N'Kỹ thuật',N'Kinh doanh',N'Marketing',N'Nhân sự',N'Hành chính')) NOT NULL,
-    CHUCVU NVARCHAR(25) CHECK (CHUCVU IN (N'Giám đốc',N'Trưởng phòng',N'Quản lý',N'Nhân viên',N'Phó phòng',N'Thực tập sinh')),
-    THAMNIEN INT NOT NULL 
+-- 1. Bảng Nhân Viên (Giữ nguyên)
+CREATE TABLE NhanVien (
+    MaNhanVien NVARCHAR(10) NOT NULL PRIMARY KEY,
+    HoVaTen NVARCHAR(100) NOT NULL,
+    SoDienThoai VARCHAR(15),
+    DiaChi NVARCHAR(255),
+    TrangThai INT DEFAULT 1 NOT NULL -- 1: Đang làm, 0: Nghỉ việc
 );
+GO
 
-CREATE TABLE TAIKHOAN(
-    TENTAIKHOAN VARCHAR(5) PRIMARY KEY,
-    PASS VARCHAR(10)
+-- 2. Bảng Xe Máy
+CREATE TABLE XeMay (
+    SoKhung VARCHAR(17) NOT NULL PRIMARY KEY, 
+    LoaiXe NVARCHAR(30),                      
+    TenXe NVARCHAR(50),
+    HangSanXuat NVARCHAR(50),
+    MauSac NVARCHAR(20),
+    NamSanXuat INT,
+    GiaBan DECIMAL(18, 0)
 );
-ALTER TABLE TAIKHOAN ADD CONSTRAINT FK_TAIKHOAN_NHANVIEN FOREIGN KEY (TENTAIKHOAN) REFERENCES NHANVIEN(MANV)
+GO
 
-CREATE TABLE HOPDONG(
-    MAHD VARCHAR(5) PRIMARY KEY,
-    LOAIHD NVARCHAR(25) CHECK (LOAIHD IN (N'Thực tập',N'Ngắn hạn',N'Dài hạn')),
-    NGAYKI DATE,
-    THOIHAN FLOAT,
-    MANV VARCHAR(5), 
-    NGAY_HIEU_LUC DATE,
-    NGAY_HET_HAN DATE,
-    LUONGCB MONEY
+-- 3. Bảng Khách Hàng
+CREATE TABLE KhachHang (
+    MaKhachHang NVARCHAR(20) NOT NULL PRIMARY KEY, -- Đã sửa: NVARCHAR để nhập tay
+    HoTen NVARCHAR(100) NOT NULL,
+    SoDienThoai VARCHAR(15),
+    DiaChi NVARCHAR(255),
+    CCCD VARCHAR(20)
 );
-ALTER TABLE HOPDONG ADD CONSTRAINT FK_HOPDONG_NHANVIEN FOREIGN KEY (MANV) REFERENCES NHANVIEN(MANV)
+GO
 
-CREATE TABLE CONG_NGAY(
-    MANV VARCHAR(5) NOT NULL,
-    NGAYLAM DATE NOT NULL,
-    GIOCHINH INT,
-    TANGCA INT,
-    PRIMARY KEY (MANV, NGAYLAM) 
+-- 4. Bảng hoá đơn
+CREATE TABLE HoaDon (
+    MaHoaDon NVARCHAR(20) NOT NULL PRIMARY KEY,
+    MaNhanVien NVARCHAR(10), 
+    MaKhachHang NVARCHAR(20), 
+    SoKhung VARCHAR(17), 
+    NgayBan DATE DEFAULT GETDATE(),
+    TongTien DECIMAL(18, 0),
+    GhiChu NVARCHAR(MAX),
+    
+    FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien),
+    FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
+    FOREIGN KEY (SoKhung) REFERENCES XeMay(SoKhung)
 );
-ALTER TABLE CONG_NGAY ADD CONSTRAINT FK_CONGNGAY_NHANVIEN FOREIGN KEY (MANV) REFERENCES NHANVIEN(MANV)
+GO
 
-CREATE TABLE LUONG(
-    MANV VARCHAR(5) NOT NULL,
-    THANG VARCHAR(7) NOT NULL CHECK (THANG LIKE '[0-1][0-9]/20[0-2][0-9]'),
-    TONGGIOCHINH INT,
-    TONGTANGCA INT,
-    TONGLUONG MONEY,
-    PHUCAP MONEY,
-    KHAUTRU MONEY,
-    THUCNHAN MONEY,
-    PRIMARY KEY (MANV, THANG)
+-- 5. Bảng Tài Khoản (Cập nhật VaiTro: Admin, QuanLy, NhanVien)
+CREATE TABLE TaiKhoan (
+    TenDangNhap NVARCHAR(50) PRIMARY KEY,
+    MatKhau NVARCHAR(255) NOT NULL, -- Sẽ lưu mã hóa SHA-256
+    MaNhanVien NVARCHAR(10) NOT NULL,
+    -- Vai trò: 'Admin' (Toàn quyền), 'QuanLy' (Quản lý kho/nhân viên), 'NhanVien' (Chỉ bán hàng)
+    VaiTro NVARCHAR(20) DEFAULT 'NhanVien' NOT NULL, 
+    FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
 );
-ALTER TABLE LUONG ADD CONSTRAINT FK_LUONG_NHANVIEN FOREIGN KEY (MANV) REFERENCES NHANVIEN(MANV)
+GO
 
-CREATE TABLE CHITIETLUONG(
-    MANV VARCHAR(5) NOT NULL,
-    THANG VARCHAR(7) NOT NULL CHECK(THANG LIKE '[0-1][0-9]/20[0-2][0-9]'),
-    LUONGCHINH MONEY,
-    LUONGTANGCA MONEY,
-    PC_THAMNIEN MONEY,
-    PC_PHUNU MONEY,
-    PC_CHUYENCAN MONEY,
-    PC_THUONG MONEY,
-    KT_THUE MONEY,
-    KT_BHYT MONEY,
-    KT_BHXH MONEY,
-    KT_BHTN MONEY,
-    KT_CONGDOAN MONEY,
-    KT_KHAC MONEY,
-    PRIMARY KEY (MANV, THANG) 
-);
-ALTER TABLE CHITIETLUONG ADD CONSTRAINT FK_CHITIETLUONG_NHANVIEN FOREIGN KEY (MANV) REFERENCES NHANVIEN(MANV)
 
-INSERT INTO NHANVIEN (MANV, HOTEN, CCCD, DIENTHOAI, GIOITINH, EMAIL, NGAYSINH, PHONGBAN, CHUCVU, THAMNIEN) VALUES
-('NV001', N'Nguyễn Văn An', '046284957482', '0987654321', N'Nam', 'an.nguyen@company.com', '1990-05-15', N'Giám đốc', N'Giám đốc', 0),
-('NV002', N'Trần Thị Bích', '582658694920', '0901234567', N'Nữ', 'bich.tran@company.com', '1980-11-20', N'Tài chính', N'Quản lý', 0),
-('NV003', N'Lê Văn Cường', '294759204659', '0912345678', N'Nam', 'cuong.le@company.com', '1995-02-10', N'Nhân sự', N'Nhân viên', 0),
-('NV004', N'Phạm Thu Diễm', '038242845964', '0968889999', N'Nữ', 'diem.pham@company.com', '1997-07-25', N'Marketing', N'Nhân viên', 0),
-('NV005', N'Hoàng Đình Em', '936241056493', '0977665544', N'Nam', 'em.hoang@company.com', '2000-01-01', N'Kỹ thuật', N'Thực tập sinh', 0);
+-- 1. Thêm dữ liệu Bảng Nhân Viên (Admin, Quản lý, Nhân viên)
+INSERT INTO NhanVien (MaNhanVien, HoVaTen, SoDienThoai, DiaChi, TrangThai) VALUES
+('NV01', N'Trần Quản N', '0901000001', N'Hà Nội', 1),
+('NV02', N'Trần Thị C', '0901000002', N'Đà Nẵng', 1),
+('NV03', N'Lê Ngọc K', '0901000003', N'TP.HCM', 1);
+GO
+
+-- 2. Thêm dữ liệu Bảng Xe Máy (Đủ loại: Tay ga, Xe số, Côn tay)
+INSERT INTO XeMay (SoKhung, LoaiXe, TenXe, HangSanXuat, MauSac, NamSanXuat, GiaBan) VALUES
+('SK1111', N'Xe Tay Ga', N'Honda Vision', 'Honda', N'Trắng', 2024, 36000000),
+('SK2222', N'Xe Tay Ga', N'Honda SH 150i', 'Honda', N'Đen mờ', 2023, 110000000),
+('SK3333', N'Xe Số', N'Wave Alpha', 'Honda', N'Xanh', 2024, 18500000),
+('SK4444', N'Xe Côn Tay', N'Yamaha Exciter 155', 'Yamaha', N'Xanh GP', 2024, 52000000),
+('SK5555', N'Xe Côn Tay', N'Winner X', 'Honda', N'Đỏ đen', 2023, 40000000),
+('SK6666', N'Xe Tay Ga', N'Air Blade 160', 'Honda', N'Xám', 2024, 56000000),
+('SK7777', N'Xe Điện', N'VinFast Klara S', 'VinFast', N'Đỏ', 2023, 35000000),
+('SK8888', N'Xe Số', N'Yamaha Sirius', 'Yamaha', N'Đen', 2023, 21000000);
+GO
+
+-- 3. Thêm dữ liệu Bảng Khách Hàng (Nhập mã tay KH01, KH02...)
+INSERT INTO KhachHang (MaKhachHang, HoTen, SoDienThoai, DiaChi, CCCD) VALUES
+('KH01', N'Nguyễn Văn D', '0988111222', N'Quận 1, TP.HCM', '079123456789'),
+('KH02', N'Trần Thị F', '0988333444', N'Quận 5, TP.HCM', '079987654321'),
+('KH03', N'Lê Văn E', '0988555666', N'Thủ Đức, TP.HCM', '079111222333'),
+('KH04', N'Phạm Thị M', '0988777888', N'Bình Thạnh, TP.HCM', '079444555666');
+GO
+
+-- 4. Thêm dữ liệu Bảng Hóa Đơn (Giả lập 2 xe đã bán: SK1111 và SK3333)
+-- Lưu ý: Mã hóa đơn nhập tay (HD01, HD02...)
+INSERT INTO HoaDon (MaHoaDon, MaNhanVien, MaKhachHang, SoKhung, NgayBan, TongTien, GhiChu) VALUES
+('HD01', 'NV03', 'KH01', 'SK1111', '2024-01-15', 36000000, N'Khách trả tiền mặt'),
+('HD02', 'NV03', 'KH02', 'SK3333', '2024-02-20', 18500000, N'Tặng kèm mũ bảo hiểm');
+GO
+
+-- 5. Thêm dữ liệu Bảng Tài Khoản
+-- Mật khẩu mặc định là "123" (đã mã hóa SHA-256)
+-- Hash SHA256 của "123" là: a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+INSERT INTO TaiKhoan (TenDangNhap, MatKhau, MaNhanVien, VaiTro) VALUES
+('admin', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'NV01', 'Admin'),
+('quanly', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'NV02', 'QuanLy'),
+('nhanvien', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'NV03', 'NhanVien');
+GO
+ select *from NhanVien
+ select *from XeMay
+ select *from KhachHang
+ select *from TaiKhoan
